@@ -65,7 +65,7 @@ Every PR has a file called patch which is where the difference between 2 files, 
 
 Comments will appear like this:
 
-![chatgptcommentonpr](img/chatgpt-comment-on-pr.png "ChatGPT comment on PR")
+![image](https://github.com/moneyforwardvietnam/ai-code-review/assets/14963736/2f2ef715-3af7-41c4-ba08-230f4cbf21da)
 
 ## Security and Privacity
 
