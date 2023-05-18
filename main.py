@@ -49,7 +49,7 @@ def files():
     repo = g.get_repo(os.getenv("GITHUB_REPOSITORY"))
     pull_request = repo.get_pull(int(args.github_pr_id))
 
-    ## Loop through the commits in the pull request
+    # Loop through the commits in the pull request
     commits = pull_request.get_commits()
     for commit in commits:
         # Getting the modified files in the commit
@@ -62,23 +62,32 @@ def files():
             if re.search(r"\.(md|DS_Store|png)$", file_name):
                 continue
             else:
-                print(file_name)
-                content = repo.get_contents(file_name, ref=commit.sha).decoded_content
+                try:
+                    content = repo.get_contents(
+                        file_name, ref=commit.sha
+                    ).decoded_content
 
-                # Sending the code to ChatGPT
-                response = openai.Completion.create(
-                    engine=args.openai_engine,
-                    prompt=(
-                        f"Review the following {lang} code snippet, give me maximum 10 unique important suggestions to improve and optimize this code without give corrected code snippets :\n```{content}```"
-                    ),
-                    temperature=float(args.openai_temperature),
-                    max_tokens=int(args.openai_max_tokens),
-                )
+                    # Sending the code to ChatGPT
+                    response = openai.Completion.create(
+                        engine=args.openai_engine,
+                        prompt=(
+                            f"Review the following {lang} code snippet, give me maximum 10 unique important suggestions to improve and optimize this code without give corrected code snippets :\n```{content}```"
+                        ),
+                        temperature=float(args.openai_temperature),
+                        max_tokens=int(args.openai_max_tokens),
+                    )
 
-                # Adding a comment to the pull request with ChatGPT's response
-                pull_request.create_issue_comment(
-                    f"I have compiled a few suggestions for this file `{file.filename}`:\n {response['choices'][0]['text']}"
-                )
+                    # Adding a comment to the pull request with ChatGPT's response
+                    pull_request.create_issue_comment(
+                        f"I have compiled a few suggestions for this file `{file.filename}`:\n {response['choices'][0]['text']}"
+                    )
+                except Exception as e:
+                    error_message = str(e)
+                    print(error_message)
+                    # Post a comment instead of throwing an exception
+                    pull_request.create_issue_comment(
+                        f"This file `{file_name}` have over maximum tokens that ChatGPT can process so cannot give any suggestions"
+                    )
 
 
 def patch():
@@ -111,7 +120,7 @@ def patch():
                     temperature=float(args.openai_temperature),
                     max_tokens=int(args.openai_max_tokens),
                 )
-                print(response)
+                # print(response)
                 print(response["choices"][0]["text"])
 
                 # Retrieve the current description
@@ -129,6 +138,10 @@ def patch():
         except Exception as e:
             error_message = str(e)
             print(error_message)
+            # Post a comment instead of throwing an exception
+            pull_request.create_issue_comment(
+                f"This file `{file_name}` have over maximum tokens that ChatGPT can process so cannot give any suggestions"
+            )
 
 
 def get_content_patch():
