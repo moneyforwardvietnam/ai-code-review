@@ -5,6 +5,7 @@ import argparse
 import openai
 import os
 import requests
+import re
 from github import Github
 
 ## Adding command-line arguments
@@ -57,6 +58,9 @@ def files():
         for file in files:
             # Getting the file name and content
             filename = file.filename
+            print(filename)
+            if re.search(r"\.md$", filename):
+                continue
             content = repo.get_contents(filename, ref=commit.sha).decoded_content
 
             # Sending the code to ChatGPT
@@ -93,6 +97,9 @@ def patch():
         try:
             file_name = diff_text.split("b/")[1].splitlines()[0]
             print(file_name)
+
+            if re.search(r"\.md$", file_name):
+                continue
 
             response = openai.Completion.create(
                 engine=args.openai_engine,
