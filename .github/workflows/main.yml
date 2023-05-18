@@ -1,0 +1,20 @@
+on:
+  pull_request: # Trigger the workflow on pull request events
+    types: [opened, synchronize] # Run the workflow when pull request is opened or synchronized
+
+jobs:
+  code-review: # Define the job name
+    runs-on: ubuntu-latest # Specify the runner to run the job on
+    name: ChatGPT Code Review # Job name
+    steps:
+      - name: Review code and post comments # Step name
+        uses: moneyforwardvietnam/ai-code-review@v1 # Use the ChatGPT Github Actions from moneyforwardvietnam repository
+        with:
+          openai_api_key: ${{ secrets.OPEN_API_KEY }} # Get the OpenAI API key from repository secrets
+          github_token: ${{ secrets.GH_TOKEN }} # Get the Github Token from repository secrets
+          github_pr_id: ${{ github.event.number }} # Get the Github Pull Request ID from the Github event
+          openai_engine: "text-davinci-003" # Optional: specify the OpenAI engine to use. Default is "text-davinci-002"
+          openai_temperature: 0.5 # Optional: specify the sampling temperature for OpenAI. Default is 0.5
+          openai_max_tokens: 2048 # Optional: specify the maximum number of tokens to generate in OpenAI completion. Default is 2048
+          mode: "files" # Optional: How to capture PR changes. Options: files, patch. Default is files
+          lang: "terraform" # Optional: Define programming language that you want to review. Default is terraform
