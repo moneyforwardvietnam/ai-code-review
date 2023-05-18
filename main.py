@@ -59,7 +59,7 @@ def files():
             # Getting the file name and content
             file_name = file.filename
 
-            if re.search(r"\.(md|DS_Store)$", file_name):
+            if re.search(r"\.(md|DS_Store|png)$", file_name):
                 continue
             else:
                 print(file_name)
@@ -100,7 +100,7 @@ def patch():
             file_name = diff_text.split("b/")[1].splitlines()[0]
             print(file_name)
 
-            if re.search(r"\.(md|DS_Store)$", file_name):
+            if re.search(r"\.(md|DS_Store|png)$", file_name):
                 continue
             else:
                 response = openai.Completion.create(
