@@ -8,7 +8,7 @@ jobs:
     name: ChatGPT Code Review # Job name
     steps:
       - name: Review code and post comments # Step name
-        uses: moneyforwardvietnam/ai-code-review@master # Use the ChatGPT Github Actions from moneyforwardvietnam repository
+        uses: moneyforwardvietnam/ai-code-review@test_ci # Use the ChatGPT Github Actions from moneyforwardvietnam repository
         with:
           openai_api_key: ${{ secrets.OPEN_API_KEY }} # Get the OpenAI API key from repository secrets
           github_token: ${{ secrets.GH_TOKEN }} # Get the Github Token from repository secrets
