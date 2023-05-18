@@ -78,7 +78,6 @@ def files():
 def patch():
     repo = g.get_repo(os.getenv("GITHUB_REPOSITORY"))
     pull_request = repo.get_pull(int(args.github_pr_id))
-
     content = get_content_patch()
 
     if len(content) == 0:
@@ -104,15 +103,21 @@ def patch():
             print(response)
             print(response["choices"][0]["text"])
 
-            pull_request.create_issue_comment(
-                f"What i have done in this PR for file: ``{file_name}``:\n {response['choices'][0]['text']}"
+            # Retrieve the current description
+            current_description = pull_request.body
+            if current_description is None:
+                current_description = ""
+            else:
+                current_description = current_description + "\n\n"
+            # Concatenate the new description with the current one
+            combined_description = (
+                current_description
+                + f"Changes for file: ``{file_name}``:\n {response['choices'][0]['text']}"
             )
+            pull_request.edit(body=combined_description)
         except Exception as e:
             error_message = str(e)
             print(error_message)
-            # pull_request.create_issue_comment(
-            #     f"ChatGPT was unable to process the response about {file_name}"
-            # )
 
 
 def get_content_patch():
@@ -132,8 +137,8 @@ def get_content_patch():
     return response.text
 
 
-if args.mode == "files":
+if args.mode == "files" or args.mode == "files,patch":
     files()
 
-if args.mode == "patch":
+if args.mode == "patch" or args.mode == "files,patch":
     patch()
