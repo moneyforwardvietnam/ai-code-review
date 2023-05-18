@@ -36,7 +36,7 @@ inputs:
     default: "terraform"
 runs:
   using: "docker"
-  image: "mfvdevops/ai-code-review:latest"
+  image: "docker://mfvdevops/ai-code-review:latest"
   args:
     - ${{ inputs.openai_api_key }}
     - ${{ inputs.github_token }}

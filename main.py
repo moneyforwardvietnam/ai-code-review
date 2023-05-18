@@ -7,6 +7,8 @@ import os
 import requests
 import re
 from github import Github
+from chat import Chat
+import json
 
 ## Adding command-line arguments
 parser = argparse.ArgumentParser()
@@ -45,6 +47,75 @@ openai.api_key = args.openai_api_key
 g = Github(args.github_token)
 
 
+def robot():
+    event_payload = os.environ["GITHUB_EVENT_PATH"]
+    with open(event_payload) as file:
+        payload = json.load(file)
+
+    action = payload["action"]
+    if action not in ["opened", "synchronize"]:
+        return "invalid event payload"
+
+    chat = Chat(args.openai_api_key)
+    if not chat:
+        return "no chat"
+
+    pull_request = payload["pull_request"]
+    if (
+        pull_request["state"] == "closed"
+        or pull_request["locked"]
+        or pull_request["draft"]
+    ):
+        return "invalid event payload"
+
+    target_label = os.environ.get("TARGET_LABEL")
+    if target_label and (
+        not pull_request["labels"]
+        or all(label["name"] != target_label for label in pull_request["labels"])
+    ):
+        return "no target label attached"
+
+    repo = g.get_repo(os.getenv("GITHUB_REPOSITORY"))
+    base_sha = pull_request["base"]["sha"]
+    head_sha = pull_request["head"]["sha"]
+    data = repo.compare(base_sha, head_sha)
+
+    changed_files = data.files
+    commits = data.commits
+
+    if action == "synchronize" and len(commits) >= 2:
+        prev_commit_sha = commits[-2].sha
+        current_commit_sha = commits[-1].sha
+        compare_data = repo.compare(prev_commit_sha, current_commit_sha)
+        files_names = (
+            [file.filename for file in compare_data.files] if compare_data.files else []
+        )
+        changed_files = [file for file in changed_files if file.filename in files_names]
+
+    if not changed_files:
+        return "no change"
+
+    print("gpt cost")
+
+    for file in changed_files:
+        if file.status != "modified" and file.status != "added":
+            continue
+
+        patch = file.patch or ""
+        if not patch or len(patch) > 4000:
+            continue
+
+        res = chat.codeReview(patch)
+        print(pull_request["number"])
+        pull_requestObj = repo.get_pull(int(pull_request["number"]))
+        if res:
+            pull_requestObj.create_issue_comment(f"`{file.filename}`:\n {res}")
+
+    print("gpt cost")
+    print(f"successfully reviewed {pull_request['html_url']}")
+    return "success"
+
+
 def files():
     repo = g.get_repo(os.getenv("GITHUB_REPOSITORY"))
     pull_request = repo.get_pull(int(args.github_pr_id))
@@ -78,6 +149,7 @@ def files():
                             engine=args.openai_engine,
                             prompt=(
                                 f"Review the following {lang} code snippet, give me maximum 10 unique important suggestions to improve and optimize this code without give corrected code snippets:\n```{content}```"
+                                f"Bellow is the code patch, please help me do a brief code review, {answerLanguage} if any bug risk and improvement suggestion are welcome\n{patch}\n"
                             ),
                             temperature=float(args.openai_temperature),
                             max_tokens=int(args.openai_max_tokens),
@@ -179,7 +251,7 @@ def get_content_patch():
 
 
 if args.mode == "files" or args.mode == "files,patch":
-    files()
+    robot()
 
 if args.mode == "patch" or args.mode == "files,patch":
     patch()
