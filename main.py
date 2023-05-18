@@ -45,6 +45,24 @@ openai.api_key = args.openai_api_key
 g = Github(args.github_token)
 
 
+def process_long_text(text, max_tokens):
+    tokens = text.split()
+    chunks = []
+    current_chunk = ""
+
+    for token in tokens:
+        if len(current_chunk) + len(token) + 1 <= max_tokens:
+            current_chunk += token + " "
+        else:
+            chunks.append(current_chunk.strip())
+            current_chunk = token + " "
+
+    # Add the last chunk
+    chunks.append(current_chunk.strip())
+
+    return chunks
+
+
 def files():
     repo = g.get_repo(os.getenv("GITHUB_REPOSITORY"))
     pull_request = repo.get_pull(int(args.github_pr_id))
@@ -62,31 +80,39 @@ def files():
             if re.search(r"\.(md|DS_Store|png)$", file_name):
                 continue
             else:
-                try:
-                    content = repo.get_contents(
-                        file_name, ref=commit.sha
-                    ).decoded_content
+                content = repo.get_contents(
+                    file_name, ref=commit.sha
+                ).decoded_content.decode()
 
-                    # Sending the code to ChatGPT
-                    response = openai.Completion.create(
-                        engine=args.openai_engine,
-                        prompt=(
-                            f"Review the following {lang} code snippet, give me maximum 10 unique important suggestions to improve and optimize this code without give corrected code snippets :\n```{content}```"
-                        ),
-                        temperature=float(args.openai_temperature),
-                        max_tokens=int(args.openai_max_tokens),
-                    )
+                # Split the long content into chunks
+                content_chunks = process_long_text(content, int(args.openai_max_tokens))
+                response = ""
+                for chunk in content_chunks:
+                    try:
+                        # Sending the chunk to ChatGPT
+                        response_chunk = openai.Completion.create(
+                            engine=args.openai_engine,
+                            prompt=(
+                                f"Review the following {lang} code snippet, give me maximum 10 unique important suggestions to improve and optimize this code without giving corrected code snippets:\n```{chunk}```"
+                            ),
+                            temperature=float(args.openai_temperature),
+                            max_tokens=int(args.openai_max_tokens),
+                        )
+
+                        response = (
+                            response + "\n" + response_chunk["choices"][0]["text"]
+                        )
+                    except Exception as e:
+                        error_message = str(e)
+                        print(error_message)
+                        # Post a comment instead of throwing an exception
+                        pull_request.create_issue_comment(
+                            f"An error occurred for file `{file.filename}`: {error_message}"
+                        )
 
                     # Adding a comment to the pull request with ChatGPT's response
                     pull_request.create_issue_comment(
-                        f"I have compiled a few suggestions for this file `{file.filename}`:\n {response['choices'][0]['text']}"
-                    )
-                except Exception as e:
-                    error_message = str(e)
-                    print(error_message)
-                    # Post a comment instead of throwing an exception
-                    pull_request.create_issue_comment(
-                        f"This file `{file_name}` have over maximum tokens that ChatGPT can process so cannot give any suggestions"
+                        f"I have compiled a few suggestions for this file `{file.filename}`:\n {response}"
                     )
 
 
@@ -105,24 +131,36 @@ def patch():
         if len(diff_text) == 0:
             continue
 
-        try:
-            file_name = diff_text.split("b/")[1].splitlines()[0]
-            print(file_name)
+        file_name = diff_text.split("b/")[1].splitlines()[0]
 
-            if re.search(r"\.(md|DS_Store|png)$", file_name):
-                continue
-            else:
-                response = openai.Completion.create(
-                    engine=args.openai_engine,
-                    prompt=(
-                        f"Summarize what was done in this diff:\n```{diff_text}```"
-                    ),
-                    temperature=float(args.openai_temperature),
-                    max_tokens=int(args.openai_max_tokens),
-                )
-                # print(response)
-                print(response["choices"][0]["text"])
+        if re.search(r"\.(md|DS_Store|png)$", file_name):
+            continue
+        else:
+            # Split the diff_text into chunks
+            chunks = process_long_text(diff_text, int(args.openai_max_tokens))
+            response = ""
+            # Process each chunk separately
+            for chunk in chunks:
+                try:
+                    response_chunk = openai.Completion.create(
+                        engine=args.openai_engine,
+                        prompt=(
+                            f"Summarize what was done in this diff:\n```{chunk}```"
+                        ),
+                        temperature=float(args.openai_temperature),
+                        max_tokens=int(args.openai_max_tokens),
+                    )
+                    # print(response)
+                    print(response["choices"][0]["text"])
 
+                    response = response + "\n" + response_chunk["choices"][0]["text"]
+                except Exception as e:
+                    error_message = str(e)
+                    print(error_message)
+                    # Post a comment instead of throwing an exception
+                    pull_request.create_issue_comment(
+                        f"An error occurred for file `{file_name}`: {error_message}"
+                    )
                 # Retrieve the current description
                 current_description = pull_request.body
                 if current_description is None:
@@ -132,16 +170,9 @@ def patch():
                 # Concatenate the new description with the current one
                 combined_description = (
                     current_description
-                    + f"Changes for file: ``{file_name}``:\n {response['choices'][0]['text']}"
+                    + f"Changes for file: ``{file_name}``:\n {response}"
                 )
                 pull_request.edit(body=combined_description)
-        except Exception as e:
-            error_message = str(e)
-            print(error_message)
-            # Post a comment instead of throwing an exception
-            pull_request.create_issue_comment(
-                f"This file `{file_name}` have over maximum tokens that ChatGPT can process so cannot give any suggestions"
-            )
 
 
 def get_content_patch():
