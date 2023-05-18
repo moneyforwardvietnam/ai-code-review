@@ -57,26 +57,28 @@ def files():
         lang = args.lang
         for file in files:
             # Getting the file name and content
-            filename = file.filename
-            print(filename)
-            if re.search(r"\.md$", filename):
+            file_name = file.filename
+
+            if re.search(r"\.(md|DS_Store)$", file_name):
                 continue
-            content = repo.get_contents(filename, ref=commit.sha).decoded_content
+            else:
+                print(file_name)
+                content = repo.get_contents(file_name, ref=commit.sha).decoded_content
 
-            # Sending the code to ChatGPT
-            response = openai.Completion.create(
-                engine=args.openai_engine,
-                prompt=(
-                    f"Review the following {lang} code snippet, give me maximum 10 unique important suggestions to improve and optimize this code without give corrected code snippets :\n```{content}```"
-                ),
-                temperature=float(args.openai_temperature),
-                max_tokens=int(args.openai_max_tokens),
-            )
+                # Sending the code to ChatGPT
+                response = openai.Completion.create(
+                    engine=args.openai_engine,
+                    prompt=(
+                        f"Review the following {lang} code snippet, give me maximum 10 unique important suggestions to improve and optimize this code without give corrected code snippets :\n```{content}```"
+                    ),
+                    temperature=float(args.openai_temperature),
+                    max_tokens=int(args.openai_max_tokens),
+                )
 
-            # Adding a comment to the pull request with ChatGPT's response
-            pull_request.create_issue_comment(
-                f"I have compiled a few suggestions for this file `{file.filename}`:\n {response['choices'][0]['text']}"
-            )
+                # Adding a comment to the pull request with ChatGPT's response
+                pull_request.create_issue_comment(
+                    f"I have compiled a few suggestions for this file `{file.filename}`:\n {response['choices'][0]['text']}"
+                )
 
 
 def patch():
@@ -98,30 +100,32 @@ def patch():
             file_name = diff_text.split("b/")[1].splitlines()[0]
             print(file_name)
 
-            if re.search(r"\.md$", file_name):
+            if re.search(r"\.(md|DS_Store)$", file_name):
                 continue
-
-            response = openai.Completion.create(
-                engine=args.openai_engine,
-                prompt=(f"Summarize what was done in this diff:\n```{diff_text}```"),
-                temperature=float(args.openai_temperature),
-                max_tokens=int(args.openai_max_tokens),
-            )
-            print(response)
-            print(response["choices"][0]["text"])
-
-            # Retrieve the current description
-            current_description = pull_request.body
-            if current_description is None:
-                current_description = ""
             else:
-                current_description = current_description + "\n\n"
-            # Concatenate the new description with the current one
-            combined_description = (
-                current_description
-                + f"Changes for file: ``{file_name}``:\n {response['choices'][0]['text']}"
-            )
-            pull_request.edit(body=combined_description)
+                response = openai.Completion.create(
+                    engine=args.openai_engine,
+                    prompt=(
+                        f"Summarize what was done in this diff:\n```{diff_text}```"
+                    ),
+                    temperature=float(args.openai_temperature),
+                    max_tokens=int(args.openai_max_tokens),
+                )
+                print(response)
+                print(response["choices"][0]["text"])
+
+                # Retrieve the current description
+                current_description = pull_request.body
+                if current_description is None:
+                    current_description = ""
+                else:
+                    current_description = current_description + "\n\n"
+                # Concatenate the new description with the current one
+                combined_description = (
+                    current_description
+                    + f"Changes for file: ``{file_name}``:\n {response['choices'][0]['text']}"
+                )
+                pull_request.edit(body=combined_description)
         except Exception as e:
             error_message = str(e)
             print(error_message)
