@@ -146,7 +146,7 @@ def patch():
                 # Concatenate the new description with the current one
                 combined_description = (
                     current_description
-                    + f"Changes for file: ``{file_name}``:\n {response['choices'][0]['text']}"
+                    + f"Changes for file ``{file_name}``:\n {response['choices'][0]['text']}"
                 )
                 pull_request.edit(body=combined_description)
 
