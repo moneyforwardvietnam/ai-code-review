@@ -57,11 +57,13 @@ def files():
         lang = args.lang
         for file in files:
             # Getting the file name and content
-            filename = file.filename
-            print(filename)
-            if re.search(r"\.py$", filename):
-                print(filename)
-                content = repo.get_contents(filename, ref=commit.sha).decoded_content
+            file_name = file.filename
+
+            if re.search(r"\.(md|DS_Store)$", file_name):
+                continue
+            else:
+                print(file_name)
+                content = repo.get_contents(file_name, ref=commit.sha).decoded_content
 
                 # Sending the code to ChatGPT
                 response = openai.Completion.create(
@@ -98,7 +100,9 @@ def patch():
             file_name = diff_text.split("b/")[1].splitlines()[0]
             print(file_name)
 
-            if re.search(r"\.py$", file_name):
+            if re.search(r"\.(md|DS_Store)$", file_name):
+                continue
+            else:
                 response = openai.Completion.create(
                     engine=args.openai_engine,
                     prompt=(
