@@ -1,27 +1,62 @@
 import os
+import argparse
 from github import Github
 from chat import Chat
+import json
+
+## Adding command-line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--openai_api_key", help="Your OpenAI API Key")
+parser.add_argument("--github_token", help="Your Github Token")
+# parser.add_argument("--github_pr_id", help="Your Github PR ID")
+# parser.add_argument(
+#     "--openai_engine",
+#     default="text-davinci-002",
+#     help="GPT-3 model to use. Options: text-davinci-003, text-davinci-002, text-babbage-001, text-curie-001, text-ada-001",
+# )
+# parser.add_argument(
+#     "--openai_temperature",
+#     default=0.5,
+#     help="Sampling temperature to use. Higher values means the model will take more risks. Recommended: 0.5",
+# )
+# parser.add_argument(
+#     "--openai_max_tokens",
+#     default=2048,
+#     help="The maximum number of tokens to generate in the completion.",
+# )
+# parser.add_argument(
+#     "--mode", default="files", help="PR interpretation form. Options: files, patch"
+# )
+# parser.add_argument(
+#     "--lang",
+#     default="terraform",
+#     help="The programming language that you need to review.",
+# )
+args = parser.parse_args()
 
 
 def loadChat():
-    if "OPENAI_API_KEY" in os.environ:
-        return Chat(os.environ["OPENAI_API_KEY"])
+    # if os.environ.get("OPENAI_API_KEY"):
+    #     return Chat(os.getenv["OPENAI_API_KEY"])
+    ## Authenticating with the OpenAI API
+    # openai.api_key = args.openai_api_key
+    return Chat(args.openai_api_key)
+    # try:
+    # github_token = os.getenv["GH_TOKEN"]
+    # g = Github(github_token)
+    # # repo = g.get_repo(os.environ["GITHUB_REPOSITORY"])
+    # repo = g.get_repo(os.getenv("GITHUB_REPOSITORY"))
+    # variable = (
+    #     repo.get_workflow_run(os.getenv["GITHUB_RUN_ID"])
+    #     .get_workflow()
+    #     .get_variable("OPENAI_API_KEY")
+    # )
+    # if variable and variable.value:
+    #     return Chat(variable.value)
+    # except Exception as e:
+    #     print(f"Error retrieving OPENAI_API_KEY: {str(e)}")
 
-    try:
-        github_token = os.environ["GITHUB_TOKEN"]
-        g = Github(github_token)
-        repo = g.get_repo(os.environ["GITHUB_REPOSITORY"])
-        variable = (
-            repo.get_workflow_run(os.environ["GITHUB_RUN_ID"])
-            .get_workflow()
-            .get_variable("OPENAI_API_KEY")
-        )
-        if variable and variable.value:
-            return Chat(variable.value)
-    except Exception as e:
-        print(f"Error retrieving OPENAI_API_KEY: {str(e)}")
-
-    return None
+    # return None
 
 
 def robot():
@@ -52,10 +87,12 @@ def robot():
     ):
         return "no target label attached"
 
-    github_token = os.environ["GITHUB_TOKEN"]
-    g = Github(github_token)
-    repo = g.get_repo(os.environ["GITHUB_REPOSITORY"])
-
+    ## Authenticating with the Github API
+    g = Github(args.github_token)
+    # github_token = os.getenv["GH_TOKEN"]
+    # g = Github(github_token)
+    # repo = g.get_repo(os.environ["GITHUB_REPOSITORY"])
+    repo = g.get_repo(os.getenv("GITHUB_REPOSITORY"))
     base_sha = pull_request["base"]["sha"]
     head_sha = pull_request["head"]["sha"]
     data = repo.compare(base_sha, head_sha)
@@ -86,16 +123,21 @@ def robot():
             continue
 
         res = chat.codeReview(patch)
-
+        print(pull_request["number"])
+        pull_requestObj = repo.get_pull(int(pull_request["number"]))
+        # return "debug here"
         if res:
-            repo.create_pull_comment(
-                pull_request["number"],
-                res,
-                file.filename,
-                None,
-                file.filename,
-                patch.count("\n"),
+            pull_requestObj.create_issue_comment(
+                f"I have compiled a few suggestions for this file `{file.filename}`:\n {res}"
             )
+            # repo.create_pull_comment(
+            #     pull_request["number"],
+            #     res,
+            #     file.filename,
+            #     None,
+            #     file.filename,
+            #     patch.count("\n"),
+            # )
 
     print("gpt cost")
     print(f"successfully reviewed {pull_request['html_url']}")

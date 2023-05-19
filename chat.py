@@ -6,7 +6,7 @@ class Chat:
     def __init__(self, api_key):
         self.api_key = api_key
         self.completion_params = {
-            "model": os.environ.get("MODEL", "gpt-3.5-turbo"),
+            "model": os.environ.get("MODEL", "text-davinci-003"),
             "temperature": float(os.environ.get("temperature", 0)) or 1,
             "top_p": float(os.environ.get("top_p", 0)) or 1,
         }

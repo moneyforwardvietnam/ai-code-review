@@ -12,10 +12,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run code review action
-        uses: moneyforwardvietnam/ai-code-review@v2
+        uses: moneyforwardvietnam/ai-code-review@v2_test
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}

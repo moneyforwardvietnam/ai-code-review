@@ -14,19 +14,22 @@ runs:
         python-version: 3.11
 
     - name: Install dependencies
+      shell: bash
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
     - name: Run code review
-      run: python robot.py
+      shell: bash
+      run: python robot.py --openai_api_key "${{ inputs.openai_api_key }}" --github_token "${{ inputs.github_token }}"
 
 inputs:
   github_token:
     description: "GitHub token"
     required: true
-    default: ${{ secrets.GITHUB_TOKEN }}
+    default: ""
 
   openai_api_key:
     description: "OpenAI API key"
     required: true
+    default: ""
