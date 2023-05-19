@@ -4,17 +4,20 @@ on:
 
 jobs:
   code-review: # Define the job name
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest # Specify the runner to run the job on
     name: ChatGPT Code Review # Job name
     steps:
       - name: Review code and post comments # Step name
-        uses: moneyforwardvietnam/ai-code-review@master # Use the ChatGPT Github Actions from moneyforwardvietnam repository
+        uses: moneyforwardvietnam/ai-code-review@test_ci # Use the ChatGPT Github Actions from moneyforwardvietnam repository
         with:
           openai_api_key: ${{ secrets.OPEN_API_KEY }} # Get the OpenAI API key from repository secrets
-          github_token: ${{ secrets.GH_TOKEN }} # Get the Github Token from repository secrets
+          github_token: ${{ secrets.GITHUB_TOKEN }} # Get the Github Token from repository secrets
           github_pr_id: ${{ github.event.number }} # Get the Github Pull Request ID from the Github event
           openai_engine: "text-davinci-003" # Optional: specify the OpenAI engine to use. Default is "text-davinci-002"
           openai_temperature: 0.5 # Optional: specify the sampling temperature for OpenAI. Default is 0.5
           openai_max_tokens: 1024 # Optional: specify the maximum number of tokens to generate in OpenAI completion. Default is 2048
-          mode: "files,patch" # Optional: How to capture PR changes. Options: files (Only post suggestions for files), patch (Edit only the first comment of this PR) or files,patch. Default is files,patch
-          lang: "terraform" # Optional: Define programming language that you want to review. Default is terraform
+          auto_pr_descriptions: "true" # Optional: Enable or disable auto fill pull request descriptions. Default is true
+          auto_code_review: "true" # Optional: Enable or disable auto code review for pull request. Default is true

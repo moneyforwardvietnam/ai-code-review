@@ -26,23 +26,31 @@ inputs:
     description: "The maximum number of tokens to generate in the completion."
     required: false
     default: "2048"
-  mode: # id of input
-    description: "How to capture PR changes. Options: files, patch"
+  auto_pr_descriptions: # id of input
+    description: "Enable or disable auto fill pull request descriptions. Options: true, false"
     required: false
-    default: "files"
-  lang: # id of input
-    description: "Which programming language that you want to review"
+    default: "true"
+  auto_code_review: # id of input
+    description: "Enable or disable auto code review for pull request. Options: true, false"
     required: false
-    default: "terraform"
+    default: "true"
 runs:
-  using: "docker"
-  image: "docker://mfvdevops/ai-code-review:latest"
-  args:
-    - ${{ inputs.openai_api_key }}
-    - ${{ inputs.github_token }}
-    - ${{ inputs.github_pr_id }}
-    - ${{ inputs.openai_engine }}
-    - ${{ inputs.openai_temperature }}
-    - ${{ inputs.openai_max_tokens }}
-    - ${{ inputs.mode }}
-    - ${{ inputs.lang }}
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run code review
+      shell: bash
+      run: python main.py --openai_api_key "${{ inputs.openai_api_key }}" --github_token "${{ inputs.github_token }}" --github_pr_id "${{ inputs.github_pr_id }}" --openai_engine "${{ inputs.openai_engine }}" --openai_temperature "${{ inputs.openai_temperature }}" --openai_max_tokens "${{ inputs.openai_max_tokens }}" --auto_pr_descriptions "${{ inputs.auto_pr_descriptions }}" --auto_code_review "${{ inputs.auto_code_review }}"
