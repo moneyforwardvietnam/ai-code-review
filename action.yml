@@ -35,22 +35,14 @@ inputs:
     required: false
     default: "true"
 runs:
-  using: "composite"
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-
-    - name: Install dependencies
-      shell: bash
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
-    - name: Run code review
-      shell: bash
-      run: python main.py --openai_api_key "${{ inputs.openai_api_key }}" --github_token "${{ inputs.github_token }}" --github_pr_id "${{ inputs.github_pr_id }}" --openai_engine "${{ inputs.openai_engine }}" --openai_temperature "${{ inputs.openai_temperature }}" --openai_max_tokens "${{ inputs.openai_max_tokens }}" --auto_pr_descriptions "${{ inputs.auto_pr_descriptions }}" --auto_code_review "${{ inputs.auto_code_review }}"
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - ${{ inputs.openai_api_key }}
+    - ${{ inputs.github_token }}
+    - ${{ inputs.github_pr_id }}
+    - ${{ inputs.openai_engine }}
+    - ${{ inputs.openai_temperature }}
+    - ${{ inputs.openai_max_tokens }}
+    - ${{ inputs.auto_pr_descriptions }}
+    - ${{ inputs.auto_code_review }}

@@ -41,7 +41,7 @@ jobs:
       - name: Review code and post comments # Step name
         uses: moneyforwardvietnam/ai-code-review@v2 # Use the ChatGPT Github Actions from moneyforwardvietnam repository
         with:
-          openai_api_key: ${{ secrets.OPEN_API_KEY }} # Get the OpenAI API key from repository secrets
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }} # Get the OpenAI API key from repository secrets
           github_token: ${{ secrets.GITHUB_TOKEN }} # Get the Github Token from repository secrets
           github_pr_id: ${{ github.event.number }} # Get the Github Pull Request ID from the Github event
           openai_engine: "text-davinci-003" # Optional: specify the OpenAI engine to use. Default is "text-davinci-002"
