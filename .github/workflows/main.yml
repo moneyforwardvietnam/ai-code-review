@@ -1,0 +1,21 @@
+name: Code Review
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run code review action
+        uses: moneyforwardvietnam/ai-code-review@v2
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
