@@ -23,7 +23,7 @@ You can do this by going to your repository/organization's settings, navigate to
 
 Then you need to set up your project's permissions so that the Github Actions can write comments on Pull Requests. You can read more about this here: [automatic-token-authentication](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token)
 
-### Step 3: Create a new Github Actions workflow in your repository in `.github/workflows/chatgpt-review.yaml. A sample workflow is given below:
+### Step 3: Create a new Github Actions workflow in your repository in `.github/workflows/code-review.yaml. A sample workflow is given below:
 
 ```
 on:
@@ -36,36 +36,23 @@ jobs:
     name: ChatGPT Code Review # Job name
     steps:
       - name: Review code and post comments # Step name
-        uses: moneyforwardvietnam/ai-code-review@master # Use the ChatGPT Github Actions from moneyforwardvietnam repository
+        uses: moneyforwardvietnam/ai-code-review@v2 # Use the ChatGPT Github Actions from moneyforwardvietnam repository
         with:
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }} # Get the OpenAI API key from repository secrets
+          openai_api_key: ${{ secrets.OPEN_API_KEY }} # Get the OpenAI API key from repository secrets
           github_token: ${{ secrets.GH_TOKEN }} # Get the Github Token from repository secrets
           github_pr_id: ${{ github.event.number }} # Get the Github Pull Request ID from the Github event
           openai_engine: "text-davinci-003" # Optional: specify the OpenAI engine to use. Default is "text-davinci-002"
           openai_temperature: 0.5 # Optional: specify the sampling temperature for OpenAI. Default is 0.5
-          openai_max_tokens: 2048 # Optional: specify the maximum number of tokens to generate in OpenAI completion. Default is 2048
-          mode: "files,patch" # Optional: How to capture PR changes. Options: files (Only post suggestions for files), patch (Edit only the first comment of this PR) or files,patch. Default is files,patch
-          lang: "terraform" # Optional: Define programming language that you want to review. Default is terraform
+          openai_max_tokens: 1024 # Optional: specify the maximum number of tokens to generate in OpenAI completion. Default is 2048
+          auto_pr_descriptions: "true" # Optional: Enable or disable auto fill pull request descriptions. Default is true
+          auto_code_review: "true" # Optional: Enable or disable auto code review for pull request. Default is true
 ```
 
-In the above workflow, the pull_request event triggers the workflow whenever a pull request is opened or synchronized. The workflow runs on the ubuntu-latest runner and uses the cirolini/chatgpt-github-actions@v1 action.
+In the above workflow, the pull_request event triggers the workflow whenever a pull request is opened or synchronized. The workflow runs on the ubuntu-latest runner and uses the moneyforwardvietnam/ai-code-review@v2 action.
 
 The openai_api_key is passed from the secrets context, and the github_token is also passed from the secrets context. The github_pr_id is passed from the github.event.number context. The other three input parameters, openai_engine, openai_temperature, and openai_max_tokens, are optional and have default values.
 
-## How it works
-
-### file
-
-This action is triggered when a pull request is opened or updated. The action authenticates with the OpenAI API using the provided API key, and with the Github API using the provided token. It then selects the repository using the provided repository name, and the pull request ID.
-For each commit in the pull request, it gets the modified files, gets the file name and content, sends the code to ChatGPT for an explanation, and adds a comment to the pull request with ChatGPT's response.
-
-### patch
-
-Every PR has a file called patch which is where the difference between 2 files, the original and the one that was changed, is, this strategy consists of reading this file and asking the AI to summarize the changes made to it.
-
 Comments will appear like this:
-
-![chatgptcommentonpr](img/chatgpt-comment-on-pr.png "ChatGPT comment on PR")
 
 ## Security and Privacity
 

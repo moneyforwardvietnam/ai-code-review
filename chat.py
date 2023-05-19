@@ -1,41 +1,36 @@
-import os
 import openai
 
 
 class Chat:
-    def __init__(self, api_key):
+    def __init__(self, api_key, model, temperature, max_tokens):
         self.api_key = api_key
         self.completion_params = {
-            "model": os.environ.get("MODEL", "text-davinci-003"),
-            "temperature": float(os.environ.get("temperature", 0)) or 1,
-            "top_p": float(os.environ.get("top_p", 0)) or 1,
+            "model": model,
+            "temperature": float(temperature),
+            "max_tokens": int(max_tokens),
         }
 
-    def generatePrompt(self, patch):
-        answerLanguage = (
-            f"Answer me in {os.environ['LANGUAGE']}, "
-            if "LANGUAGE" in os.environ
-            else ""
-        )
-        return f"Bellow is the code patch, please help me do a brief code review, {answerLanguage} if any bug risk and improvement suggestion are welcome\n{patch}\n"
-
-    def codeReview(self, patch):
-        if not patch:
+    def codeReview(self, prompt):
+        if not prompt:
             return ""
 
-        print("code-review cost")
-        prompt = self.generatePrompt(patch)
+        # print("Getting response from OpenAI")
+        try:
+            res = openai.Completion.create(
+                engine=self.completion_params["model"],
+                prompt=prompt,
+                temperature=self.completion_params["temperature"],
+                max_tokens=self.completion_params["max_tokens"],
+                n=1,
+                stop=None,
+                api_key=self.api_key,
+            )
+        except Exception as e:
+            print("Error occurred during OpenAI API call:", str(e))
+            return ""
 
-        res = openai.Completion.create(
-            engine=self.completion_params["model"],
-            prompt=prompt,
-            temperature=self.completion_params["temperature"],
-            max_tokens=200,
-            top_p=self.completion_params["top_p"],
-            n=1,
-            stop=None,
-            api_key=self.api_key,
-        )
-
-        print("code-review cost")
-        return res.choices[0].text.strip()
+        # print("Returning response from OpenAI")
+        if res.choices:
+            return res.choices[0].text.strip()
+        else:
+            return ""
